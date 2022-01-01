@@ -67,16 +67,6 @@ int ANIMD_ttoa(const char *fpath)
   strncat(temp, fpath, endpt);
   if (!(out = fopen(temp, "wb"))) { printf("Could not open file: %s\n", temp); return -1; }
 
-  /* [SIZE] */
-  READ_HEADER(SIZE);
-
-  READ_SIZE; /* X */
-  WRITE(&temp_int, 1);
-  total_size = temp_int;
-  READ_SIZE; /* Y */
-  WRITE(&temp_int, 1);
-  total_size *= temp_int;
-
   /* [ANIMATIONS] */
   READ_HEADER(ANIMATIONS);
  
@@ -92,7 +82,7 @@ int ANIMD_ttoa(const char *fpath)
     remove_nl(temp);
     WRITE(temp, 7);
     fputc('\0', out);
-    printf("Animation name: %s\n", temp);
+    printf("[ANIMATION]: %s\n", temp);
 
     /* 'Write' frames */
     frames_num = 0;
@@ -103,23 +93,24 @@ int ANIMD_ttoa(const char *fpath)
     temp_index = 0;
     while ((temp[temp_index] = fgetc(in)) == '>') {
       ++frames_num;
-      /* Read the ids */
-      for (int32_t i = 0; i < total_size; ++i) {
-        temp_index = 0;
-        temp[temp_index] = fgetc(in);
-        while (temp[temp_index] != ',') temp[++temp_index] = fgetc(in);
-        temp[temp_index] = '\0';
-        temp_int = atoi(temp);
-        WRITE(&temp_int, 1);
-        printf("Writing id %d\n", temp_int);
-      }
       /* Read the frame duration */
       temp_index = 0;
       temp[temp_index] = fgetc(in);
-      while (temp[temp_index] != '\n') temp[++temp_index] = fgetc(in);
+      while (temp[temp_index] != ',' && temp[temp_index] != '\n') temp[++temp_index] = fgetc(in);
       remove_nl(temp);
       temp_int = atoi(temp);
       WRITE(&temp_int, 1);
+      printf("Frame duration %u\n", temp_int);
+      /* Read the ids */
+      for (int32_t i = 0; i < 4; ++i) {
+        temp_index = 0;
+        temp[temp_index] = fgetc(in);
+        while (temp[temp_index] != ',' && temp[temp_index] != '\n') temp[++temp_index] = fgetc(in);
+        temp[temp_index] = '\0';
+        temp_int = atoi(temp);
+        WRITE(&temp_int, 1);
+        printf("    Writing data %u\n", temp_int);
+      }
     }
 
     /* Update frames_num */
